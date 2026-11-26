@@ -27,8 +27,10 @@ export class CrearDimensionDesdeMaterialControlador {
     const leido = await extraerTexto(archivo);
     if (!leido.necesitaIA) return { texto: leido.texto, mensaje: `${leido.detalle}.`, porIA: false };
 
-    if (ia?.estado === "sample") throw new Error(`${leido.detalle}: para leerlo con IA abre el juego con servidor.mjs y tu llave.`);
-    if (!ia?.disponible()) throw new Error(`${leido.detalle}: para leerlo hace falta la IA. Abre el juego con tu llave de Claude o sube el texto en PDF, Word o .txt.`);
+    // Si la página recién abrió, primero se espera a saber si hay IA (no se da por perdida antes de tiempo).
+    const hayIA = await ia?.disponibleTras?.();
+    if (ia?.estado === "sample") throw new Error(`${leido.detalle}: las fotos y los PDF escaneados se leen con el juego publicado en internet (o con servidor.mjs y tu llave). También puedes subir el texto en PDF, Word o .txt.`);
+    if (!hayIA) throw new Error(`${leido.detalle}: para leerlo hace falta la IA, y esta copia del juego no la tiene conectada (falta la llave de Claude en el servidor). Usa el link publicado o sube el texto en PDF, Word o .txt.`);
     let texto;
     try {
       texto = limpiarTexto(await ia.transcribir(leido.mediaType, leido.base64));
@@ -53,7 +55,7 @@ export class CrearDimensionDesdeMaterialControlador {
     const texto = String(material ?? "").trim();
     if (texto.length < C.MIN_CARACTERES) throw new Error(`El material es muy corto: escribe al menos ${C.MIN_CARACTERES} caracteres.`);
     if (texto.length > C.MAX_CARACTERES) throw new Error(`El material es muy largo (máximo ${C.MAX_CARACTERES} caracteres). Divídelo en dos mundos.`);
-    if (!ia?.disponible()) throw new Error("La IA no está conectada. Abre el juego con tu llave de Claude (en Abrir juego.command) o desde Claude.");
+    if (!(await ia?.disponibleTras?.())) throw new Error("Esta copia del juego no tiene la IA conectada (falta la llave de Claude en el servidor). Usa el link publicado, o en tu computador pon la llave en el archivo .env.");
     let datos;
     try {
       datos = await ia.preguntasDesdeMaterial(texto, edadValida(edad), C.PREGUNTAS);

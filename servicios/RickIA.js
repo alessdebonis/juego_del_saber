@@ -53,7 +53,8 @@ export class RickIA {
     this.estado = "buscando";     // "sample" | "servidor" | "sin-ia" | "buscando"
     this.sample = null;
     this.observadores = [];      // Observer: lista de funciones a las que se avisa
-    this.#detectar();
+    // Promesa que se cumple cuando ya se sabe si hay IA (en Render dormido puede tardar casi un minuto).
+    this.listo = this.#detectar();
   }
 
   async #detectar() {
@@ -78,6 +79,12 @@ export class RickIA {
   #poner(e) { this.estado = e; this.#notificar(); }
 
   disponible() { return this.estado === "sample" || this.estado === "servidor"; }
+
+  // Espera a saber si hay IA (como mucho `ms`) y dice si está disponible.
+  async disponibleTras(ms = 70000) {
+    await Promise.race([this.listo, new Promise(r => setTimeout(r, ms))]);
+    return this.disponible();
+  }
 
   recordarVisto(reto) {
     this.vistos.push(reto.pregunta.split(":")[0]);
