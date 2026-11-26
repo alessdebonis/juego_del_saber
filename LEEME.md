@@ -95,6 +95,8 @@ En estos mundos la IA no inventa nada mientras el niño juega: no se usan genera
 - **Banco del profe:** los retos que agrega el administrador se mezclan con los generados.
 
 ## Cómo se juega
+- **Edad de 3 a 99 años:** se escribe al entrar (o con los botones − y +). Rick adapta los retos y les habla según la edad: niño, adolescente o adulto.
+- **Diseño liquid glass:** pantallas y ventanas de vidrio esmerilado. Los menús, los interruptores, los avisos de error y las confirmaciones son del juego, no del navegador.
 - Muévete con **WASD o las flechas**, haz **clic** en el piso o en un portal, o usa la **palanca** en el celular.
 - Entra a un portal y toca un cristal (nivel 1, 2 o 3).
 - **Responde corriendo:** las opciones son orbes en el mundo (rosa A, azul B, amarillo C). Corre al correcto o tócalo en el panel.

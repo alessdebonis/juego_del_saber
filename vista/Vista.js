@@ -34,6 +34,12 @@ export class Vista {
     this.personajeElegido = null;
     this.#conectar();
     this.#joystick();
+    // Componentes propios en vez de los del navegador: menús, edad con − y +, avisos de error y descripciones.
+    this.#stepper($("#edad"));
+    this.#stepper($("#mat-edad"));
+    this.#mejorarSelects(document);
+    this.#descripciones();
+    document.addEventListener("input", e => this.#limpiarError(e.target));
   }
 
   // ======== Pantallas ========
@@ -466,6 +472,7 @@ export class Vista {
     $("#tutor-nombre").value = tutor.nombre;
     $("#tutor-correo").value = tutor.correo;
     $("#tutor-parentesco").value = tutor.parentesco || "madre";
+    $("#tutor-parentesco").refrescar?.();
     $("#modal-opciones").hidden = false;
   }
 
@@ -506,7 +513,7 @@ export class Vista {
         <div class="admin-fila">
           <input id="dim-nombre-${di}" aria-label="Nombre de la dimensión" value="${escapar(d.nombre)}">
           <select id="dim-materia-${di}" aria-label="Materia">
-            ${["lectura", "matematicas", "escritura", "material"].map(m => `<option value="${m}" ${m === d.materia ? "selected" : ""}>${m === "material" ? "material (solo preguntas aprobadas)" : m}</option>`).join("")}
+            ${["lectura", "matematicas", "escritura", "material"].map(m => `<option value="${m}" ${m === d.materia ? "selected" : ""}>${m === "material" ? "material (solo aprobadas)" : m}</option>`).join("")}
           </select>
           <label class="interruptor"><input type="checkbox" id="dim-abierta-${di}" ${d.desbloqueada ? "checked" : ""}> Abierta</label>
           <button type="button" class="boton chico" data-accion="guardar-dim">Guardar</button>
@@ -525,7 +532,7 @@ export class Vista {
         }, di);
         this.anunciar("Guardado", d.nombre);
       });
-      sec.querySelector('[data-accion="borrar-dim"]').addEventListener("click", e => this.#confirmar(e.target, () => {
+      sec.querySelector('[data-accion="borrar-dim"]').addEventListener("click", () => this.#confirmar(`Se borrará «${d.nombre}» con todos sus niveles y retos. No se puede deshacer.`, () => {
         this.ctx.c.administrarDimensiones.ejecutar(dimensiones, "eliminar", {}, di);
         this.#pintarAdmin();
       }));
@@ -542,7 +549,7 @@ export class Vista {
             <small>${r.opciones.map((o, i) => `${LETRAS[i]}) ${escapar(o)}`).join(" · ")} — correcta: ${escapar(r.respuestaCorrecta)}</small>
             ${r.fuente ? `<small class="cita">Del material: «${escapar(r.fuente)}»</small>` : ""}
             <button type="button" class="boton chico peligro">Eliminar reto</button>`;
-          fila.querySelector("button").addEventListener("click", e => this.#confirmar(e.target, () => {
+          fila.querySelector("button").addEventListener("click", () => this.#confirmar(`Se borrará el reto «${r.pregunta.slice(0, 90)}».`, () => {
             this.ctx.c.administrarRetos.ejecutar(n, "eliminar", {}, ri);
             this.#pintarAdmin();
           }));
@@ -550,23 +557,25 @@ export class Vista {
         });
         const form = document.createElement("form");
         form.className = "admin-nuevo-reto";
+        form.noValidate = true;
         const id = `${di}-${ni}`;
         form.innerHTML = `
           <strong>Nuevo reto</strong>
-          <input id="nr-pregunta-${id}" required placeholder="Pregunta" aria-label="Pregunta">
+          <input id="nr-pregunta-${id}" required placeholder="Pregunta" aria-label="Pregunta" data-error="Escribe la pregunta.">
           <div class="admin-fila">
-            <input id="nr-a-${id}" required placeholder="Opción A" aria-label="Opción A">
-            <input id="nr-b-${id}" required placeholder="Opción B" aria-label="Opción B">
-            <input id="nr-c-${id}" required placeholder="Opción C" aria-label="Opción C">
+            <input id="nr-a-${id}" required placeholder="Opción A" aria-label="Opción A" data-error="Escribe la opción A.">
+            <input id="nr-b-${id}" required placeholder="Opción B" aria-label="Opción B" data-error="Escribe la opción B.">
+            <input id="nr-c-${id}" required placeholder="Opción C" aria-label="Opción C" data-error="Escribe la opción C.">
             <select id="nr-correcta-${id}" aria-label="Respuesta correcta"><option>A</option><option>B</option><option>C</option></select>
           </div>
-          <input id="nr-pista-${id}" required placeholder="Pista" aria-label="Pista">
+          <input id="nr-pista-${id}" required placeholder="Pista" aria-label="Pista" data-error="Escribe una pista que ayude sin decir la respuesta.">
           <div class="admin-fila">
             <button class="boton chico">Agregar reto</button>
             <button type="button" class="boton chico peligro" data-accion="borrar-nivel">Eliminar nivel</button>
           </div>`;
         form.addEventListener("submit", e => {
           e.preventDefault();
+          if (!this.#validar(form)) return;
           this.ctx.c.administrarRetos.ejecutar(n, "crear", {
             pregunta: $(`#nr-pregunta-${id}`).value.trim(),
             opciones: ["a", "b", "c"].map(x => $(`#nr-${x}-${id}`).value.trim()),
@@ -575,7 +584,7 @@ export class Vista {
           });
           this.#pintarAdmin();
         });
-        form.querySelector('[data-accion="borrar-nivel"]').addEventListener("click", e => this.#confirmar(e.target, () => {
+        form.querySelector('[data-accion="borrar-nivel"]').addEventListener("click", () => this.#confirmar(`Se borrará el nivel ${n.numero} con sus ${n.retos.length} retos.`, () => {
           this.ctx.c.administrarNiveles.ejecutar(d, "eliminar", {}, ni);
           this.#pintarAdmin();
         }));
@@ -593,6 +602,7 @@ export class Vista {
       sec.append(nuevoNivel);
       raiz.append(sec);
     });
+    this.#mejorarSelects(raiz);
   }
 
   // ======== Admin: crear un mundo desde material (IA) ========
@@ -722,6 +732,7 @@ export class Vista {
       if (p.avisos.length) tarjeta.append(el("ul", { className: "avisos" }, ...p.avisos.map(a => el("li", { textContent: a }))));
       caja.append(tarjeta);
     });
+    this.#mejorarSelects(caja);
 
     const det = $("#mat-descartadas");
     det.hidden = descartadas.length === 0;
@@ -749,13 +760,197 @@ export class Vista {
     }
   }
 
-  // Confirmación dentro de la página (el visor no muestra confirm()).
-  #confirmar(boton, accion) {
-    if (boton.dataset.confirmando) { accion(); return; }
-    const original = boton.textContent;
-    boton.dataset.confirmando = "1";
-    boton.textContent = "¿Seguro? Toca otra vez";
-    setTimeout(() => { delete boton.dataset.confirmando; boton.textContent = original; }, 2500);
+  // ======== Componentes propios (en vez de los del navegador) ========
+
+  // Diálogo del juego, en vez de alert/confirm del navegador. Devuelve una promesa: true si acepta.
+  dialogo({ titulo, texto = "", aceptar = "Aceptar", cancelar = null, peligro = false }) {
+    const modal = $("#modal-dialogo"), si = $("#dialogo-aceptar"), no = $("#dialogo-cancelar");
+    const foco = document.activeElement;
+    $("#dialogo-titulo").textContent = titulo;
+    $("#dialogo-texto").textContent = texto;
+    si.textContent = aceptar;
+    si.classList.toggle("peligro", peligro);
+    no.textContent = cancelar ?? "";
+    no.hidden = !cancelar;
+    modal.hidden = false;
+    (peligro && cancelar ? no : si).focus();   // si es para borrar, el foco empieza en "Cancelar"
+    return new Promise(resolver => {
+      const cerrar = valor => {
+        modal.hidden = true;
+        si.removeEventListener("click", alSi);
+        no.removeEventListener("click", alNo);
+        modal.removeEventListener("keydown", alTecla);
+        modal.removeEventListener("click", alFondo);
+        foco?.focus?.();
+        resolver(valor);
+      };
+      const alSi = () => cerrar(true);
+      const alNo = () => cerrar(false);
+      const alFondo = e => { if (e.target === modal) cerrar(false); };
+      const alTecla = e => {
+        if (e.key === "Escape") { e.stopPropagation(); cerrar(false); }
+        if (e.key === "Tab") {   // el foco se queda dentro del diálogo
+          const botones = [no, si].filter(b => !b.hidden);
+          e.preventDefault();
+          botones[(botones.indexOf(document.activeElement) + (e.shiftKey ? -1 : 1) + botones.length) % botones.length].focus();
+        }
+      };
+      si.addEventListener("click", alSi);
+      no.addEventListener("click", alNo);
+      modal.addEventListener("keydown", alTecla);
+      modal.addEventListener("click", alFondo);
+    });
+  }
+
+  // Antes de borrar algo, pregunta con el diálogo del juego.
+  async #confirmar(texto, accion) {
+    if (await this.dialogo({ titulo: "¿Eliminar?", texto, aceptar: "Eliminar", cancelar: "Cancelar", peligro: true })) accion();
+  }
+
+  // Revisa un formulario y muestra los errores con el estilo del juego (en vez de las burbujas del navegador).
+  #validar(form) {
+    let primero = null;
+    for (const campo of form.querySelectorAll("input, textarea")) {
+      this.#limpiarError(campo);
+      const v = campo.value.trim();
+      let error = "";
+      if (campo.required && !v) error = campo.dataset.error || "Completa este campo.";
+      else if (v && campo.type === "number" && !(Number(v) >= Number(campo.min) && Number(v) <= Number(campo.max))) error = campo.dataset.error || `Escribe un número entre ${campo.min} y ${campo.max}.`;
+      else if (v && campo.type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) error = campo.dataset.error || "Escribe un correo válido.";
+      if (!error) continue;
+      const burbuja = el("p", { className: "burbuja", textContent: error });
+      burbuja.id = `error-${campo.id || Math.random().toString(36).slice(2)}`;
+      burbuja.setAttribute("role", "alert");
+      campo.setAttribute("aria-invalid", "true");
+      campo.setAttribute("aria-describedby", burbuja.id);
+      (campo.closest(".stepper, .campo-linea") ?? campo).insertAdjacentElement("afterend", burbuja);
+      primero ??= campo;
+    }
+    primero?.focus();
+    return !primero;
+  }
+
+  #limpiarError(campo) {
+    if (campo?.getAttribute?.("aria-invalid") !== "true") return;
+    campo.removeAttribute("aria-invalid");
+    const id = campo.getAttribute("aria-describedby");
+    if (id) document.getElementById(id)?.remove();
+    campo.removeAttribute("aria-describedby");
+  }
+
+  // Menús desplegables con el estilo del juego. El <select> del navegador sigue escondido debajo
+  // y guarda el valor, así el resto del código no cambia.
+  #mejorarSelects(raiz) {
+    raiz.querySelectorAll("select:not([data-vidrio])").forEach(s => this.#mejorarSelect(s));
+  }
+
+  #mejorarSelect(select) {
+    select.dataset.vidrio = "1";
+    const caja = el("div", { className: "selector" });
+    select.before(caja);
+    const boton = el("button", { type: "button", className: "selector-boton" });
+    boton.setAttribute("aria-haspopup", "listbox");
+    boton.setAttribute("aria-expanded", "false");
+    const etiqueta = select.id && document.querySelector(`label[for="${select.id}"]`);
+    if (etiqueta) { boton.id = `${select.id}-boton`; etiqueta.htmlFor = boton.id; }
+    else boton.setAttribute("aria-label", select.getAttribute("aria-label") ?? "");
+    const lista = el("ul", { className: "selector-lista", hidden: true });
+    lista.setAttribute("role", "listbox");
+    caja.append(boton, lista, select);
+    select.classList.add("selector-nativo");
+    select.tabIndex = -1;
+    select.setAttribute("aria-hidden", "true");
+
+    let activa = 0;
+    const pintar = () => { boton.textContent = select.selectedOptions[0]?.textContent ?? ""; };
+    const marcar = () => lista.querySelectorAll("li").forEach((li, i) => li.classList.toggle("activa", i === activa));
+    const fuera = e => { if (!caja.contains(e.target)) cerrar(); };
+    const cerrar = () => {
+      lista.hidden = true;
+      boton.setAttribute("aria-expanded", "false");
+      document.removeEventListener("pointerdown", fuera, true);
+    };
+    const elegir = i => {
+      select.selectedIndex = i;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      pintar();
+      cerrar();
+      boton.focus();
+    };
+    const abrir = () => {
+      lista.replaceChildren(...[...select.options].map((o, i) => {
+        const li = el("li", { textContent: o.textContent });
+        li.setAttribute("role", "option");
+        li.setAttribute("aria-selected", String(i === select.selectedIndex));
+        li.addEventListener("click", () => elegir(i));
+        return li;
+      }));
+      activa = Math.max(0, select.selectedIndex);
+      marcar();
+      lista.hidden = false;
+      boton.setAttribute("aria-expanded", "true");
+      document.addEventListener("pointerdown", fuera, true);
+    };
+    boton.addEventListener("click", () => (lista.hidden ? abrir() : cerrar()));
+    boton.addEventListener("keydown", e => {
+      const n = select.options.length;
+      if (lista.hidden) {
+        if (["ArrowDown", "ArrowUp"].includes(e.key)) { e.preventDefault(); abrir(); }
+        return;
+      }
+      if (e.key === "ArrowDown") { e.preventDefault(); activa = (activa + 1) % n; marcar(); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); activa = (activa - 1 + n) % n; marcar(); }
+      else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(activa); }
+      else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); cerrar(); }
+      else if (e.key === "Tab") cerrar();
+    });
+    select.addEventListener("change", pintar);
+    select.refrescar = pintar;   // para cuando el código cambia el valor (por ejemplo, al abrir Opciones)
+    pintar();
+  }
+
+  // Edad con botones − y + grandes (más fácil en el celular que las flechitas del navegador).
+  #stepper(input) {
+    const caja = el("div", { className: "stepper" });
+    input.before(caja);
+    const menos = el("button", { type: "button", textContent: "−", ariaLabel: "Restar un año" });
+    const mas = el("button", { type: "button", textContent: "+", ariaLabel: "Sumar un año" });
+    const cambiar = paso => {
+      const n = Math.min(Number(input.max) || 99, Math.max(Number(input.min) || 0, Math.round(Number(input.value) || 0) + paso));
+      input.value = String(n);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    menos.addEventListener("click", () => cambiar(-1));
+    mas.addEventListener("click", () => cambiar(1));
+    caja.append(menos, input, mas);
+  }
+
+  // Descripciones flotantes con el estilo del juego (en vez del cuadrito "title" del navegador).
+  #descripciones() {
+    const tip = $("#tip");
+    let actual = null;
+    const mostrar = e => {
+      const elem = e.target.closest?.("[title], [data-tip]");
+      if (!elem || elem === actual) return;
+      if (elem.title) { elem.dataset.tip = elem.title; elem.removeAttribute("title"); }
+      if (!elem.dataset.tip) return;
+      actual = elem;
+      tip.textContent = elem.dataset.tip;
+      tip.hidden = false;
+      const r = elem.getBoundingClientRect(), t = tip.getBoundingClientRect();
+      tip.style.left = `${Math.min(innerWidth - t.width - 12, Math.max(12, r.left + r.width / 2 - t.width / 2))}px`;
+      tip.style.top = `${r.bottom + 8 + t.height > innerHeight ? r.top - t.height - 8 : r.bottom + 8}px`;
+    };
+    const ocultar = e => {
+      if (!actual || (e.relatedTarget && actual.contains(e.relatedTarget))) return;
+      actual = null;
+      tip.hidden = true;
+    };
+    document.addEventListener("pointerover", mostrar);
+    document.addEventListener("pointerout", ocultar);
+    document.addEventListener("focusin", mostrar);
+    document.addEventListener("focusout", ocultar);
+    window.addEventListener("scroll", () => { actual = null; tip.hidden = true; }, true);
   }
 
   // ======== Eventos de la interfaz ========
@@ -764,8 +959,8 @@ export class Vista {
 
     $("#form-inicio").addEventListener("submit", e => {
       e.preventDefault();
+      if (!this.#validar(e.target)) return;
       const nombre = $("#nombre").value.trim();
-      if (!nombre) { $("#nombre").focus(); return; }
       this.sonido("portal");
       c().iniciarSesion.ejecutar(nombre, Number($("#edad").value));
       this.mostrarPersonajes(this.ctx.personajes);
@@ -807,6 +1002,7 @@ export class Vista {
 
     $("#form-opciones").addEventListener("submit", e => {
       e.preventDefault();
+      if (!this.#validar(e.target)) return;
       c().configurarOpciones.ejecutar(
         { sonido: $("#op-sonido").checked, voz: $("#op-voz").checked, modoDemo: $("#op-demo").checked },
         { nombre: $("#tutor-nombre").value.trim(), correo: $("#tutor-correo").value.trim(), parentesco: $("#tutor-parentesco").value },
@@ -907,7 +1103,7 @@ export class Vista {
       zona.classList.remove("soltando");
       this.#cargarArchivos([...e.dataTransfer.files]);
     });
-    $("#form-material").addEventListener("submit", e => { e.preventDefault(); this.#pedirPropuestas(); });
+    $("#form-material").addEventListener("submit", e => { e.preventDefault(); if (this.#validar(e.target)) this.#pedirPropuestas(); });
     $("#mat-aprobar-todas").addEventListener("click", () => {
       for (const p of this.propuestas ?? []) if (p.estado !== "aprobada") p.marcar("aprobada");
     });

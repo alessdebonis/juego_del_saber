@@ -11,7 +11,7 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
-import { ARCHIVOS_TRANSCRIBIR, instrucciones, instruccionesMaterial, instruccionesTranscribir, MATERIAL_MAX, MATERIAL_MIN, MATERIAS_IA } from "./servicios/instrucciones.js";
+import { ARCHIVOS_TRANSCRIBIR, edadValida, instrucciones, instruccionesMaterial, instruccionesTranscribir, MATERIAL_MAX, MATERIAL_MIN, MATERIAS_IA } from "./servicios/instrucciones.js";
 
 const PUERTO = Number(process.env.PORT ?? 8000);
 const LLAVE = process.env.ANTHROPIC_API_KEY;
@@ -63,7 +63,7 @@ const RUTAS = {
     cuerpo: 20000, porHora: POR_HORA, tokens: 8000,
     armar(d) {
       if (!Object.hasOwn(MATERIAS_IA, d.materia)) return null;
-      return instrucciones(d.materia, entero(d.dificultad, 1, 5, 1), entero(d.edad, 4, 12, 7),
+      return instrucciones(d.materia, entero(d.dificultad, 1, 5, 1), edadValida(d.edad),
         { vistos: textoCorto(d.vistos), fallados: textoCorto(d.fallados).slice(0, 3) });
     },
   },
@@ -72,7 +72,7 @@ const RUTAS = {
     armar(d) {
       const material = typeof d.material === "string" ? d.material.trim() : "";
       if (material.length < MATERIAL_MIN || material.length > MATERIAL_MAX) return null;
-      return instruccionesMaterial(material, entero(d.edad, 4, 12, 7), entero(d.cantidad, 1, 20, 15));
+      return instruccionesMaterial(material, edadValida(d.edad), entero(d.cantidad, 1, 20, 15));
     },
   },
   // Foto o PDF escaneado del profe → texto. Solo se aceptan esos tipos de archivo, en base64.

@@ -1,5 +1,5 @@
 import { inventosDeMundo } from "../datos/contenido.js";
-import { MATERIAL_MAX, MATERIAL_MIN } from "../servicios/instrucciones.js";
+import { edadValida, MATERIAL_MAX, MATERIAL_MIN } from "../servicios/instrucciones.js";
 import { leerArchivo as extraerTexto, limpiarTexto } from "../servicios/leerArchivo.js";
 import { problemaEnAprobada, verificarPropuestas } from "./verificarMaterial.js";
 
@@ -56,7 +56,7 @@ export class CrearDimensionDesdeMaterialControlador {
     if (!ia?.disponible()) throw new Error("La IA no está conectada. Abre el juego con tu llave de Claude (en Abrir juego.command) o desde Claude.");
     let datos;
     try {
-      datos = await ia.preguntasDesdeMaterial(texto, edad, C.PREGUNTAS);
+      datos = await ia.preguntasDesdeMaterial(texto, edadValida(edad), C.PREGUNTAS);
     } catch (e) {
       if (e?.status === 429) throw new Error("Se alcanzó el límite de pedidos a la IA por ahora. Prueba otra vez más tarde.");
       throw new Error("La IA no respondió. Prueba otra vez en un momento.");

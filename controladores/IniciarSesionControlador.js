@@ -1,19 +1,22 @@
 import { Jugador } from "../modelo/index.js";
 import { crearLogros } from "../datos/contenido.js";
+import { edadValida } from "../servicios/instrucciones.js";
 
 // Caso de uso: Iniciar sesión (Jugador y Admin).
 export class IniciarSesionControlador {
   constructor(ctx) { this.ctx = ctx; }
 
-  // El niño entra con su nombre. Si ya jugó antes con ese nombre, recupera su progreso.
+  // Quien juega entra con su nombre y su edad (de 3 a 99 años). Si ya jugó antes con ese nombre, recupera su progreso.
   ejecutar(nombre, edad) {
     const { almacen, dimensiones } = this.ctx;
+    const edadFinal = edadValida(edad);
     const guardado = almacen.cargarJugador(dimensiones);
     let jugador = guardado && guardado.nombre.toLowerCase() === nombre.toLowerCase() ? guardado : null;
     if (!jugador) {
-      jugador = new Jugador(`j-${Date.now()}`, nombre, edad);
+      jugador = new Jugador(`j-${Date.now()}`, nombre, edadFinal);
       jugador.progreso.logros = crearLogros();
     }
+    jugador.edad = edadFinal;   // si vuelve con otra edad (por ejemplo, cumplió años), se usa la nueva
     // Si el juego trae logros nuevos, se agregan a los que el jugador ya tenía.
     for (const logro of crearLogros()) {
       if (!jugador.progreso.logros.some(l => l.nombre === logro.nombre)) jugador.progreso.logros.push(logro);

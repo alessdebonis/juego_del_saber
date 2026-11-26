@@ -29,6 +29,8 @@
     --radio: 18px;
     color-scheme: dark;
   }
+  /* El ancho de cada caja incluye su relleno y su borde: así nada se sale de su tarjeta ni de la pantalla. */
+  *, *::before, *::after { box-sizing: border-box; }
   [hidden] { display: none !important; }
   html, body { height: 100%; }
   body {
@@ -76,6 +78,7 @@
   .tarjeta {
     width: min(100%, 520px); background: var(--panel); border: 2px solid var(--linea);
     border-radius: 26px; padding: 28px; display: grid; gap: 18px;
+    grid-template-columns: minmax(0, 1fr);   /* nada de adentro puede ensanchar la tarjeta */
     box-shadow: 0 20px 60px rgba(0,0,0,.5);
   }
   .marca { font-family: var(--display); font-size: clamp(34px, 8vw, 54px); line-height: .95; color: var(--portal); text-shadow: 0 0 24px rgba(124,240,60,.45); text-wrap: balance; margin: 0; }
@@ -319,6 +322,176 @@
     .tarjeta { padding: 20px; }
     .tarjeta-personaje svg { width: 48px; height: 60px; }
   }
+
+  /* ===================== Liquid glass =====================
+     Vidrio esmerilado: fondo translúcido que desenfoca lo que hay detrás, borde de luz arriba
+     y un brillo suave en la esquina. Esta capa solo cambia la apariencia, no el tamaño ni la posición. */
+  :root {
+    --vidrio: linear-gradient(150deg, rgba(255,255,255,.15), rgba(255,255,255,.04) 46%, rgba(255,255,255,.08)), rgba(14,32,36,.46);
+    --vidrio-claro: linear-gradient(150deg, rgba(255,255,255,.12), rgba(255,255,255,.03) 50%), rgba(255,255,255,.035);
+    --vidrio-borde: rgba(255,255,255,.2);
+    --vidrio-luz: inset 0 1px 0 rgba(255,255,255,.32), inset 0 -1px 0 rgba(0,0,0,.2), inset 0 0 0 1px rgba(255,255,255,.04);
+    --vidrio-sombra: 0 18px 50px rgba(0,0,0,.38), 0 2px 8px rgba(0,0,0,.2);
+    --desenfoque: blur(22px) saturate(170%);
+    --campo: rgba(0,0,0,.24);
+  }
+  * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.28) transparent; }
+
+  /* Superficies de vidrio */
+  .tarjeta, .pastilla, .icono-boton, #rick, #reto, .aviso, #cargando-ia, #palanca, #tip, .selector-lista {
+    background: var(--vidrio);
+    border: 1px solid var(--vidrio-borde);
+    box-shadow: var(--vidrio-luz), var(--vidrio-sombra);
+    backdrop-filter: var(--desenfoque); -webkit-backdrop-filter: var(--desenfoque);
+  }
+  .tarjeta { position: relative; isolation: isolate; border-radius: 30px; }
+  .tarjeta::before {   /* brillo de la esquina, como luz reflejada en el vidrio */
+    content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+    background: radial-gradient(120% 70% at 0% 0%, rgba(255,255,255,.16), transparent 55%),
+                radial-gradient(80% 50% at 100% 100%, rgba(109,251,210,.08), transparent 60%);
+  }
+  .lista li, .nodo, .tarjeta-personaje, .admin-dim, .admin-nivel, .propuesta, .chip, .opcion {
+    background: var(--vidrio-claro);
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
+  }
+
+  /* Fondos de pantallas y ventanas: el juego se ve desenfocado detrás del vidrio */
+  .pantalla { background: radial-gradient(ellipse at 50% 120%, rgba(124,240,60,.16), transparent 60%), rgba(6,16,18,.42); }
+  .modal { background: rgba(4,10,12,.36); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); }
+  .modal:not([hidden]) > .tarjeta, .pantalla:not([hidden]) > .tarjeta { animation: vidrio-entra .3s cubic-bezier(.2,.8,.2,1); }
+  @keyframes vidrio-entra { from { opacity: 0; transform: translateY(12px) scale(.97); } }
+
+  /* Botones */
+  .boton {
+    background: linear-gradient(180deg, rgba(178,255,128,.98), rgba(104,222,46,.94));
+    border: 1px solid rgba(255,255,255,.45);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.7), inset 0 -2px 0 rgba(0,0,0,.14), 0 8px 24px rgba(124,240,60,.32);
+    transition: transform .12s ease, box-shadow .2s ease, filter .2s ease;
+  }
+  .boton:hover { filter: brightness(1.05); }
+  .boton:active { transform: scale(.97); box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 4px 12px rgba(124,240,60,.25); }
+  .boton.chico { box-shadow: inset 0 1px 0 rgba(255,255,255,.7), inset 0 -2px 0 rgba(0,0,0,.14), 0 6px 16px rgba(124,240,60,.25); }
+  .boton.secundario {
+    background: var(--vidrio-claro); color: var(--texto); border: 1px solid rgba(255,255,255,.22);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 6px 18px rgba(0,0,0,.25);
+    backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%);
+  }
+  .boton.peligro {
+    background: linear-gradient(180deg, rgba(255,150,122,.96), rgba(240,98,62,.94)); color: #2b0d05; border: 1px solid rgba(255,255,255,.4);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 6px 18px rgba(255,122,89,.3);
+  }
+  .boton:disabled { filter: grayscale(.4); opacity: .55; cursor: default; transform: none; }
+  .icono-boton { color: var(--texto); transition: transform .12s ease; }
+  .icono-boton:active { transform: scale(.94); }
+  .chip { border-radius: 999px; transition: background .2s ease, border-color .2s ease; }
+  .chip[aria-pressed="true"] { background: linear-gradient(180deg, rgba(124,240,60,.42), rgba(124,240,60,.22)); border-color: rgba(124,240,60,.8); }
+
+  /* Campos de texto */
+  .campo input, .campo select, .admin-fila input, .admin-fila select, .admin-nuevo-reto > input,
+  .propuesta input[type="text"], .propuesta select, #mat-texto, .selector-boton {
+    background: var(--campo); border: 1px solid rgba(255,255,255,.16);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.35), inset 0 -1px 0 rgba(255,255,255,.06);
+  }
+  .campo input:focus, .admin-fila input:focus, .admin-nuevo-reto > input:focus, .propuesta input[type="text"]:focus, #mat-texto:focus, .selector-boton:focus-visible {
+    outline: none; border-color: var(--holo); box-shadow: inset 0 1px 3px rgba(0,0,0,.35), 0 0 0 3px rgba(109,251,210,.25);
+  }
+  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* Juego: panel del reto, Rick y opciones */
+  #reto { border: 1px solid rgba(124,240,60,.6); border-radius: 28px; box-shadow: var(--vidrio-luz), 0 0 0 5px rgba(124,240,60,.1), 0 22px 60px rgba(0,0,0,.5); }
+  #rick { border: 1px solid rgba(109,251,210,.6); border-radius: 26px; box-shadow: var(--vidrio-luz), 0 0 30px rgba(109,251,210,.18), var(--vidrio-sombra); }
+  .opcion { border-radius: 20px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .opcion:hover:not(:disabled) { border-color: rgba(109,251,210,.8); background: linear-gradient(150deg, rgba(109,251,210,.18), rgba(255,255,255,.04)); }
+  .opcion.bien { border-color: rgba(124,240,60,.9); background: linear-gradient(150deg, rgba(124,240,60,.4), rgba(124,240,60,.14)); }
+  .opcion.mal { border-color: rgba(255,122,89,.9); background: linear-gradient(150deg, rgba(255,122,89,.32), rgba(255,122,89,.1)); }
+  .opcion .letra { box-shadow: inset 0 1px 0 rgba(255,255,255,.5); }
+  #reto-explicacion { background: linear-gradient(150deg, rgba(255,209,102,.24), rgba(255,209,102,.08)); border: 1px solid rgba(255,209,102,.6); }
+  .tarjeta-personaje[aria-pressed="true"] { background: linear-gradient(150deg, rgba(124,240,60,.3), rgba(124,240,60,.08)); border-color: rgba(124,240,60,.85); box-shadow: 0 0 0 3px rgba(124,240,60,.2), inset 0 1px 0 rgba(255,255,255,.25); }
+  .barra { background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.14); }
+  .aviso { border: 1px solid rgba(255,209,102,.6); border-radius: 18px; }
+  .insignia { box-shadow: inset 0 1px 0 rgba(255,255,255,.5); }
+  .nodo-niveles i { background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.16); }
+  #palanca-bola { box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 4px 14px rgba(124,240,60,.4); }
+
+  /* Interruptores (en vez de las casillas del navegador) */
+  .interruptor input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none; flex: none; width: 50px; height: 30px; margin: 0; border-radius: 999px; cursor: pointer;
+    border: 1px solid rgba(255,255,255,.24);
+    background: radial-gradient(circle at 15px 50%, #fff 0 10px, transparent 11px), rgba(255,255,255,.12);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.35);
+    transition: background-color .2s ease;
+  }
+  .interruptor input[type="checkbox"]:checked {
+    background: radial-gradient(circle at calc(100% - 15px) 50%, #fff 0 10px, transparent 11px), linear-gradient(180deg, rgba(150,255,100,.95), rgba(104,222,46,.9));
+    border-color: rgba(255,255,255,.45);
+  }
+  /* Botones de opción (la respuesta correcta en la revisión del profe) */
+  .opcion-edit input[type="radio"] {
+    appearance: none; -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; margin: 0;
+    border: 1px solid rgba(255,255,255,.3); background: rgba(0,0,0,.24); box-shadow: inset 0 1px 3px rgba(0,0,0,.35);
+  }
+  .opcion-edit input[type="radio"]:checked {
+    background: radial-gradient(circle, #0b1c06 0 4px, transparent 5px), linear-gradient(180deg, rgba(150,255,100,.98), rgba(104,222,46,.92));
+    border-color: rgba(255,255,255,.5);
+  }
+  /* Secciones que se abren (en vez de la flecha del navegador) */
+  details > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::after { content: ""; margin-left: auto; width: 9px; height: 9px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .2s ease; opacity: .7; }
+  details[open] > summary::after { transform: rotate(45deg); }
+
+  /* Edad con botones − y + */
+  .stepper { display: grid; grid-template-columns: 54px minmax(0, 1fr) 54px; gap: 8px; align-items: stretch; }
+  .stepper input { text-align: center; font-weight: 800; }
+  .stepper button {
+    border-radius: 14px; border: 1px solid rgba(255,255,255,.22); background: var(--vidrio-claro); color: var(--texto);
+    font-size: 26px; font-weight: 800; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .stepper button:active { transform: scale(.95); }
+  .admin-fila .stepper { flex: 1 1 140px; grid-template-columns: 42px minmax(0, 1fr) 42px; }
+  .admin-fila .stepper input { flex: none; }
+
+  /* Menú desplegable propio (en vez del <select> del navegador) */
+  .selector { position: relative; min-width: 0; }
+  .admin-fila .selector { flex: 1 1 160px; }
+  .selector-nativo { position: absolute !important; inset: 0; opacity: 0; pointer-events: none; }
+  .selector-boton {
+    width: 100%; min-height: 42px; border-radius: 12px; padding: 6px 38px 6px 12px; text-align: left; cursor: pointer;
+    color: var(--texto); font: inherit; position: relative; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .campo .selector-boton { min-height: 54px; border-radius: 14px; font-size: 20px; padding-left: 16px; }
+  .selector-boton::after {
+    content: ""; position: absolute; right: 16px; top: 50%; width: 8px; height: 8px; margin-top: -6px;
+    border-right: 2px solid var(--suave); border-bottom: 2px solid var(--suave); transform: rotate(45deg);
+  }
+  .selector-lista {
+    position: absolute; z-index: 60; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none;
+    border-radius: 16px; max-height: 260px; overflow-y: auto; animation: vidrio-entra .16s ease;
+  }
+  .selector-lista { background: linear-gradient(150deg, rgba(255,255,255,.13), rgba(255,255,255,.03) 50%), rgba(16,36,40,.95); }   /* casi opaco: lo de abajo no estorba al leer */
+  .selector-lista li { padding: 9px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; }
+  .selector-lista li[aria-selected="true"] { color: var(--portal); }
+  .selector-lista li.activa, .selector-lista li:hover { background: rgba(255,255,255,.12); }
+
+  /* Diálogo propio, avisos de error y descripciones flotantes */
+  #modal-dialogo { z-index: 45; }
+  .dialogo { width: min(100%, 440px); }
+  .dialogo h2 { color: var(--texto); font-size: 22px; }
+  .burbuja {
+    margin: 6px 0 0; padding: 7px 12px; border-radius: 12px; font-size: 15px; font-weight: 700; color: #ffd9cf;
+    background: linear-gradient(150deg, rgba(255,122,89,.26), rgba(255,122,89,.1)); border: 1px solid rgba(255,122,89,.6);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); animation: vidrio-entra .2s ease;
+  }
+  [aria-invalid="true"] { border-color: var(--alerta) !important; box-shadow: 0 0 0 3px rgba(255,122,89,.25) !important; }
+  #tip {
+    position: fixed; z-index: 70; max-width: min(280px, calc(100vw - 24px)); padding: 7px 12px; border-radius: 12px;
+    font-size: 14px; font-weight: 700; pointer-events: none; animation: vidrio-entra .14s ease;
+  }
+  .admin-fila > .burbuja, .fila > .burbuja { flex-basis: 100%; }
+  .propuesta .fila .selector { flex: none; width: 190px; }
+  .campo .selector-boton::after { right: 18px; }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 
@@ -326,18 +499,16 @@
 
 <!-- Inicio: Iniciar sesión -->
 <section class="pantalla" id="inicio">
-  <form class="tarjeta" id="form-inicio" autocomplete="off">
+  <form class="tarjeta" id="form-inicio" autocomplete="off" novalidate>
     <h1 class="marca">Portal del Saber<small>Rick y Morty te enseñan a leer, escribir y contar</small></h1>
     <p class="lema">Cruza portales, resuelve retos y gana los inventos del garaje.</p>
     <div class="campo">
       <label for="nombre">¿Cómo te llamas?</label>
-      <input id="nombre" maxlength="20" placeholder="Tu nombre" autocomplete="off">
+      <input id="nombre" maxlength="20" placeholder="Tu nombre" autocomplete="off" required data-error="Escribe tu nombre para entrar al garaje.">
     </div>
     <div class="campo">
       <label for="edad">¿Cuántos años tienes?</label>
-      <select id="edad">
-        <option>5</option><option>6</option><option selected>7</option><option>8</option><option>9</option><option>10</option>
-      </select>
+      <input id="edad" type="number" inputmode="numeric" min="3" max="99" step="1" value="7" required data-error="Escribe una edad entre 3 y 99 años.">
     </div>
     <div class="fila">
       <button class="boton" type="submit">Entrar al garaje</button>
@@ -362,7 +533,7 @@
 
 <!-- Admin: iniciar sesión -->
 <section class="pantalla" id="admin-login" hidden>
-  <form class="tarjeta" id="form-admin">
+  <form class="tarjeta" id="form-admin" novalidate>
     <h2 class="marca" style="font-size:28px">Administrador</h2>
     <p class="lema">Edita dimensiones, niveles y retos. Contraseña de la demo: <strong>rick123</strong></p>
     <div class="campo">
@@ -403,12 +574,12 @@
       <button class="boton chico secundario" type="button" id="mat-volver">Volver al panel</button>
     </div>
     <p class="lema">Pega el texto de tu clase. La IA propone preguntas, el juego comprueba que cada una salga de tu texto y tú decides cuáles verán los niños. En este mundo solo aparecen las preguntas que apruebes.</p>
-    <form id="form-material" class="material-form">
+    <form id="form-material" class="material-form" novalidate>
       <div class="admin-fila">
-        <label class="campo-linea">Nombre del mundo<input id="mat-tema" maxlength="60" required placeholder="Ej.: El ciclo del agua"></label>
-        <label class="campo-linea">Edad de los niños<select id="mat-edad"><option>5</option><option>6</option><option selected>7</option><option>8</option><option>9</option><option>10</option></select></label>
+        <label class="campo-linea">Nombre del mundo<input id="mat-tema" maxlength="60" required placeholder="Ej.: El ciclo del agua" data-error="Ponle un nombre al mundo."></label>
+        <label class="campo-linea">Edad de los estudiantes<input id="mat-edad" type="number" inputmode="numeric" min="3" max="99" step="1" value="7" required data-error="Escribe una edad entre 3 y 99 años."></label>
       </div>
-      <textarea id="mat-texto" rows="10" required placeholder="Pega aquí el texto de la lección, o arrastra aquí tus archivos…" aria-label="Material de la clase"></textarea>
+      <textarea id="mat-texto" rows="10" required placeholder="Pega aquí el texto de la lección, o arrastra aquí tus archivos…" aria-label="Material de la clase" data-error="Pega el texto de la clase o carga un archivo."></textarea>
       <p class="lema" id="mat-ayuda-archivos">Puedes cargar o arrastrar PDF, Word, PowerPoint, Excel, OpenDocument, texto, páginas web o fotos. Su texto aparece aquí: revísalo antes de pedir preguntas.</p>
       <div class="admin-fila">
         <span id="mat-contador" class="lema"></span>
@@ -534,14 +705,14 @@
 
 <!-- Opciones -->
 <div class="modal" id="modal-opciones" hidden>
-  <form class="tarjeta" id="form-opciones">
+  <form class="tarjeta" id="form-opciones" novalidate>
     <h2>Opciones</h2>
     <label class="interruptor"><input type="checkbox" id="op-sonido"> Sonidos</label>
     <label class="interruptor"><input type="checkbox" id="op-voz"> Rick habla en voz alta</label>
     <label class="interruptor"><input type="checkbox" id="op-demo"> Modo demo (abre todas las dimensiones)</label>
     <h3>Tutor (padre, madre o docente)</h3>
     <div class="campo"><label for="tutor-nombre">Nombre</label><input id="tutor-nombre"></div>
-    <div class="campo"><label for="tutor-correo">Correo</label><input id="tutor-correo" type="email"></div>
+    <div class="campo"><label for="tutor-correo">Correo</label><input id="tutor-correo" type="email" data-error="Escribe un correo válido, por ejemplo nombre@correo.com."></div>
     <div class="campo"><label for="tutor-parentesco">Parentesco</label>
       <select id="tutor-parentesco"><option>madre</option><option>padre</option><option>docente</option><option>otro</option></select>
     </div>
@@ -566,6 +737,15 @@
 </div>
 
 <div id="cargando-ia" hidden role="status"><span class="giro" aria-hidden="true"></span>Rick está inventando retos…</div>
+<!-- Diálogo propio del juego (en vez de los avisos del navegador) -->
+<div class="modal" id="modal-dialogo" hidden role="dialog" aria-modal="true" aria-labelledby="dialogo-titulo" aria-describedby="dialogo-texto">
+  <div class="tarjeta dialogo">
+    <h2 id="dialogo-titulo"></h2>
+    <p class="lema" id="dialogo-texto"></p>
+    <div class="fila"><span class="espacio"></span><button class="boton secundario" type="button" id="dialogo-cancelar">Cancelar</button><button class="boton" type="button" id="dialogo-aceptar">Aceptar</button></div>
+  </div>
+</div>
+<div id="tip" role="tooltip" hidden></div>
 <div id="avisos" aria-live="polite"></div>
 <div id="confeti" aria-hidden="true"></div>
 
