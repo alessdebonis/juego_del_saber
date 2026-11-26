@@ -1,0 +1,25 @@
+# Receta para publicar el juego en Render (render.com) con un link para cualquiera.
+# En Render: New > Blueprint > elige este repositorio. Render lee este archivo y crea el servicio.
+# La llave de Claude NO va aquí: Render te la pide al crear el servicio (o en Environment).
+services:
+  - type: web
+    name: portal-del-saber
+    runtime: node
+    plan: free
+    buildCommand: "echo sin dependencias"
+    startCommand: "node servidor.mjs"
+    healthCheckPath: /api/rick/estado
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false        # la pegas tú en Render; nunca en el código
+      - key: RICK_MODELO
+        value: claude-haiku-5-5
+      # Límites para cuidar tus créditos (súbelos o bájalos cuando quieras desde Render > Environment)
+      - key: LIMITE_POR_HORA
+        value: "40"        # retos con IA por persona por hora
+      - key: LIMITE_MATERIAL_POR_HORA
+        value: "5"         # mundos desde material por persona por hora
+      - key: LIMITE_TRANSCRIBIR_POR_HORA
+        value: "5"         # fotos o PDF escaneados por persona por hora
+      - key: LIMITE_POR_DIA
+        value: "300"       # pedidos a la IA en total por día

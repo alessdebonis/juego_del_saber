@@ -1,0 +1,7 @@
+# Nunca subir llaves ni archivos del sistema
+.env
+.env.*
+*.key
+node_modules/
+.DS_Store
+*.zip

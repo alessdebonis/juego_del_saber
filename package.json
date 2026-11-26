@@ -1,0 +1,9 @@
+{
+  "name": "portal-del-saber",
+  "version": "1.0.0",
+  "description": "Juego educativo 3D del universo Rick y Morty: aprender a leer, escribir y contar con Rick IA.",
+  "type": "module",
+  "private": true,
+  "scripts": { "start": "node servidor.mjs" },
+  "engines": { "node": ">=18" }
+}

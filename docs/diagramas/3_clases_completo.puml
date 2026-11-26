@@ -1,0 +1,133 @@
+@startuml clases_completo
+' Diagrama de clases (completo) - Juego educativo 3D: universo Rick y Morty
+skinparam classAttributeIconSize 0
+hide circle
+
+abstract class Usuario {
+  - id: int
+  - nombre: String
+  - correo: String
+  - contrasena: String
+  + iniciarSesion(): boolean
+  + cerrarSesion(): void
+}
+
+class Jugador {
+  - edad: int
+  + elegirPersonaje(p: Personaje): void
+  + viajarPorPortal(d: Dimension): void
+  + elegirNivel(n: Nivel): void
+  + jugarNivel(): void
+  + explorarDimension(): void
+  + interactuarConObjeto(): void
+  + usarInvento(i: Invento): void
+  + pausarPartida(): void
+  + configurarOpciones(): void
+}
+
+class Administrador {
+  - rol: String
+  + administrarDimension(): void
+  + administrarNivel(): void
+  + administrarReto(): void
+}
+
+class Tutor {
+  - nombre: String
+  - correo: String
+  - parentesco: String
+  + recibirReporte(p: Progreso): void
+}
+
+class Personaje {
+  - nombre: String
+  - tipo: String
+  - accesorios: List<String>
+  + personalizar(a: String): void
+}
+
+class Portal {
+  - energia: int
+  + recargar(cantidad: int): void
+  + abrir(d: Dimension): boolean
+}
+
+class Dimension {
+  - nombre: String
+  - materia: String
+  - desbloqueada: boolean
+  + desbloquear(): void
+}
+
+class Nivel {
+  - numero: int
+  - dificultad: String
+  + iniciar(): void
+  + finalizar(): boolean
+}
+
+class Reto {
+  - pregunta: String
+  - opciones: String[]
+  - respuestaCorrecta: char
+  - pista: String
+  - fuente: String
+  + verificarRespuesta(r: char): boolean
+  + darPista(): String
+}
+
+class Invento {
+  - nombre: String
+  - descripcion: String
+  - efecto: String
+  + usar(): void
+}
+
+class Progreso {
+  - nivelActual: int
+  - retosCompletados: int
+  - ultimaFecha: Date
+  + guardar(): void
+  + generarReporte(): String
+}
+
+class Logro {
+  - nombre: String
+  - descripcion: String
+  - fecha: Date
+  + otorgar(): void
+}
+
+class MisionDiaria {
+  - descripcion: String
+  - fecha: Date
+  - completada: boolean
+  + completar(): void
+}
+
+' Herencia
+Usuario <|-- Jugador
+Usuario <|-- Administrador
+
+' Asociaciones
+Tutor "1..*" -- "1..*" Jugador : supervisa >
+Jugador "1" -- "1" Personaje : usa >
+Portal "1" -- "1..*" Dimension : viaja a >
+Nivel "1" -- "1" Invento : otorga >
+
+' Composición (la parte no existe sin el todo)
+Jugador "1" *-- "1" Portal
+Jugador "1" *-- "1" Progreso
+Dimension "1" *-- "1..*" Nivel
+Nivel "1" *-- "1..*" Reto
+
+' Agregación (la parte existe sola)
+Jugador "1" o-- "0..*" Invento : posee >
+Progreso "1" o-- "0..*" Logro
+Progreso "1" o-- "0..*" MisionDiaria
+
+' Dependencia (CRUD del administrador)
+Administrador ..> Dimension : <<administra>>
+Administrador ..> Nivel : <<administra>>
+Administrador ..> Reto : <<administra>>
+@enduml

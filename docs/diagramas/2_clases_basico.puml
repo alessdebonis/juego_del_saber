@@ -1,0 +1,51 @@
+@startuml clases_basico
+' Diagrama de clases (básico) - Juego educativo 3D: universo Rick y Morty
+skinparam classAttributeIconSize 0
+hide circle
+
+class Jugador {
+  - nombre: String
+  - energiaPortal: int
+  + elegirPersonaje(p: Personaje): void
+  + viajarPorPortal(d: Dimension): void
+  + jugarNivel(n: Nivel): void
+}
+
+class Personaje {
+  - nombre: String
+  - tipo: String
+  + personalizar(): void
+}
+
+class Dimension {
+  - nombre: String
+  - desbloqueada: boolean
+  + desbloquear(): void
+}
+
+class Nivel {
+  - numero: int
+  - dificultad: String
+  + iniciar(): void
+}
+
+class Reto {
+  - pregunta: String
+  - respuestaCorrecta: char
+  - pista: String
+  + verificarRespuesta(r: char): boolean
+  + darPista(): String
+}
+
+class Invento {
+  - nombre: String
+  - efecto: String
+  + usar(): void
+}
+
+Jugador "1" -- "1" Personaje : usa >
+Jugador "1" -- "1..*" Dimension : viaja a >
+Jugador "1" o-- "0..*" Invento : posee >
+Dimension "1" *-- "1..*" Nivel
+Nivel "1" *-- "1..*" Reto
+@enduml

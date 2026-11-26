@@ -1,0 +1,100 @@
+@startuml
+skin rose
+title Portal del Saber - Controladores, interfaz y patrones de diseño
+skinparam classAttributeIconSize 0
+left to right direction
+
+interface CasoDeUso <<interface>> {
+  +ejecutar()
+}
+note right of CasoDeUso
+  JavaScript no tiene "interface":
+  se simula con un contrato y
+  implementa(objeto, CasoDeUso)
+  revisa que exista ejecutar().
+end note
+
+class "crearControladores(ctx)" as Fabrica <<Factory>> {
+  +crea los 24 controladores
+  +verifica implementa(c, CasoDeUso)
+}
+
+package "Clases control (una por caso de uso)" {
+  class IniciarSesionControlador
+  class ElegirPersonajeControlador
+  class PersonalizarPersonajeControlador
+  class ViajarPorPortalControlador
+  class DesbloquearDimensionControlador
+  class ExplorarDimensionControlador
+  class InteractuarConObjetoControlador
+  class ElegirNivelControlador
+  class JugarNivelControlador
+  class ResponderRetoControlador
+  class PedirPistaControlador
+  class GanarInventoControlador
+  class UsarInventoControlador
+  class GuardarProgresoControlador
+  class EnviarReporteProgresoControlador
+  class CompletarMisionDiariaControlador
+  class VerLogrosControlador
+  class PausarPartidaControlador
+  class ConfigurarOpcionesControlador
+  class CerrarSesionControlador
+  class AdministrarDimensionesControlador
+  class AdministrarNivelesControlador
+  class AdministrarRetosControlador
+  class CrearDimensionDesdeMaterialControlador
+}
+
+CasoDeUso <|.. IniciarSesionControlador
+CasoDeUso <|.. ElegirPersonajeControlador
+CasoDeUso <|.. PersonalizarPersonajeControlador
+CasoDeUso <|.. ViajarPorPortalControlador
+CasoDeUso <|.. DesbloquearDimensionControlador
+CasoDeUso <|.. ExplorarDimensionControlador
+CasoDeUso <|.. InteractuarConObjetoControlador
+CasoDeUso <|.. ElegirNivelControlador
+CasoDeUso <|.. JugarNivelControlador
+CasoDeUso <|.. ResponderRetoControlador
+CasoDeUso <|.. PedirPistaControlador
+CasoDeUso <|.. GanarInventoControlador
+CasoDeUso <|.. UsarInventoControlador
+CasoDeUso <|.. GuardarProgresoControlador
+CasoDeUso <|.. EnviarReporteProgresoControlador
+CasoDeUso <|.. CompletarMisionDiariaControlador
+CasoDeUso <|.. VerLogrosControlador
+CasoDeUso <|.. PausarPartidaControlador
+CasoDeUso <|.. ConfigurarOpcionesControlador
+CasoDeUso <|.. CerrarSesionControlador
+CasoDeUso <|.. AdministrarDimensionesControlador
+CasoDeUso <|.. AdministrarNivelesControlador
+CasoDeUso <|.. AdministrarRetosControlador
+CasoDeUso <|.. CrearDimensionDesdeMaterialControlador
+
+Fabrica ..> CasoDeUso : <<verifica>>
+
+class RickIA <<Observer: sujeto>> {
+  -observadores
+  +suscribir(observador)
+  -notificar()
+  +preguntasDesdeMaterial(material, edad, cantidad)
+  +transcribir(mediaType, base64)
+}
+class Vista <<Observer: observador>> {
+  +estadoIA(estado)
+}
+RickIA o--> "0..*" Vista : avisa >
+CrearDimensionDesdeMaterialControlador ..> RickIA : pide preguntas >
+
+class Almacen <<Singleton>> {
+  +guardarJugador(j)
+  +cargarJugador()
+  +guardarContenido(dimensiones)
+  +guardarTutor(t)
+  +cargarTutor()
+  +cargarContenido()
+  +mundoATexto(d)
+  +leerMundo(texto)
+}
+GuardarProgresoControlador ..> Almacen
+@enduml

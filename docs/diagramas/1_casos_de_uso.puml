@@ -1,0 +1,75 @@
+@startuml casos_de_uso
+' Diagrama de casos de uso - Juego educativo 3D: universo Rick y Morty
+left to right direction
+skinparam actorStyle stick
+skinparam usecase {
+  BackgroundColor White
+  BorderColor Black
+}
+
+actor "Jugador\n(niño)" as Jugador
+actor "Admin" as Admin
+actor "Tutor\n(padre / docente)" as Tutor
+
+rectangle "Sistema: Juego 3D Rick y Morty" {
+  usecase "Iniciar sesión" as UC1
+  usecase "Elegir personaje" as UC2
+  usecase "Personalizar personaje" as UC3
+  usecase "Viajar por portal" as UC4
+  usecase "Desbloquear dimensión" as UC5
+  usecase "Elegir nivel" as UC6
+  usecase "Explorar dimensión" as UC7
+  usecase "Interactuar con objeto" as UC8
+  usecase "Jugar nivel" as UC9
+  usecase "Responder reto" as UC10
+  usecase "Pedir pista" as UC11
+  usecase "Ganar invento" as UC12
+  usecase "Usar invento" as UC13
+  usecase "Guardar progreso" as UC14
+  usecase "Enviar reporte de progreso" as UC15
+  usecase "Completar misión diaria" as UC16
+  usecase "Ver logros" as UC17
+  usecase "Pausar partida" as UC18
+  usecase "Configurar opciones" as UC19
+  usecase "Cerrar sesión" as UC20
+  usecase "Administrar (CRUD) dimensiones" as UC21
+  usecase "Administrar (CRUD) niveles" as UC22
+  usecase "Administrar (CRUD) retos" as UC23
+  usecase "Crear dimensión desde material" as UC24
+}
+
+' Actor principal: Jugador
+Jugador --> UC1
+Jugador --> UC2
+Jugador --> UC4
+Jugador --> UC6
+Jugador --> UC7
+Jugador --> UC9
+Jugador --> UC16
+Jugador --> UC17
+Jugador --> UC18
+Jugador --> UC19
+Jugador --> UC20
+
+' Actor principal: Admin
+Admin --> UC21
+Admin --> UC22
+Admin --> UC23
+
+' Actor secundario: Tutor (no interactúa con el sistema, solo recibe el reporte)
+UC15 --> Tutor
+
+' include = paso obligatorio
+UC9 ..> UC10 : <<include>>
+UC9 ..> UC12 : <<include>>
+UC9 ..> UC14 : <<include>>
+UC14 ..> UC15 : <<include>>
+
+' extend = paso opcional (la flecha apunta al caso base)
+UC3 ..> UC2 : <<extend>>
+UC5 ..> UC4 : <<extend>>
+UC8 ..> UC7 : <<extend>>
+UC11 ..> UC10 : <<extend>>
+UC13 ..> UC9 : <<extend>>
+UC24 ..> UC21 : <<extend>>
+@enduml
