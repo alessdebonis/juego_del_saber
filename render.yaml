@@ -13,15 +13,15 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false        # la pegas tú en Render; nunca en el código
       - key: RICK_MODELO
-        value: claude-haiku-5-5
+        value: claude-sonnet-5-5   # Sonnet 5.5: más capaz; cuesta unas 20 veces más que claude-haiku-5-5
       - key: RICK_ESFUERZO
         value: low         # cuánto piensa la IA antes de responder (low basta para retos y preguntas)
       # Límites para cuidar tus créditos (súbelos o bájalos cuando quieras desde Render > Environment)
       - key: LIMITE_POR_HORA
-        value: "40"        # retos con IA por persona por hora
+        value: "120"       # retos con IA por persona por hora
       - key: LIMITE_MATERIAL_POR_HORA
-        value: "5"         # mundos desde material por persona por hora
+        value: "15"        # mundos desde material por persona por hora
       - key: LIMITE_TRANSCRIBIR_POR_HORA
-        value: "5"         # fotos o PDF escaneados por persona por hora
+        value: "15"        # fotos o PDF escaneados por persona por hora
       - key: LIMITE_POR_DIA
-        value: "300"       # pedidos a la IA en total por día
+        value: "1000"      # pedidos a la IA en total por día

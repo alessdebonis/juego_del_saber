@@ -15,21 +15,24 @@ import { ARCHIVOS_TRANSCRIBIR, instrucciones, instruccionesMaterial, instruccion
 
 const PUERTO = Number(process.env.PORT ?? 8000);
 const LLAVE = process.env.ANTHROPIC_API_KEY;
-const MODELO = process.env.RICK_MODELO ?? "claude-haiku-5-5";
-// Claude Haiku 5.5 siempre piensa antes de responder. Para estas tareas (retos cortos, preguntas, transcribir)
-// basta pensar poco: así responde más rápido, gasta menos y le queda espacio para la respuesta.
+const MODELO = process.env.RICK_MODELO ?? "claude-sonnet-5-5";
+// Los modelos actuales (Sonnet 5.5, Haiku 5.5) siempre piensan antes de responder. Para estas tareas (retos cortos,
+// preguntas, transcribir) basta pensar poco: así responde más rápido, gasta menos y le queda espacio para la respuesta.
 // Para un modelo sin "effort" (por ejemplo Haiku 4.5), pon RICK_ESFUERZO vacío en el entorno.
 const ESFUERZO = process.env.RICK_ESFUERZO ?? "low";
+// Sonnet 5.5 puede negarse a responder si cree que un pedido roza un tema delicado. Con "fallbacks: default",
+// Anthropic reintenta esos casos en otro modelo dentro del mismo pedido. Haiku 5.5 no lo admite.
+const CON_RESPALDO = /^claude-(sonnet-5-5|opus-5|fable-5)/.test(MODELO);
 const RAIZ = new URL(".", import.meta.url).pathname;
 const TIPOS = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".md": "text/markdown; charset=utf-8",
   ".css": "text/css; charset=utf-8", ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml", ".ico": "image/x-icon",
 };
 
-const POR_HORA = Number(process.env.LIMITE_POR_HORA ?? 40);                    // retos con IA por persona por hora
-const MATERIAL_POR_HORA = Number(process.env.LIMITE_MATERIAL_POR_HORA ?? 10);  // mundos desde material por persona por hora
-const TRANSCRIBIR_POR_HORA = Number(process.env.LIMITE_TRANSCRIBIR_POR_HORA ?? 10); // fotos o PDF escaneados por persona por hora
-const POR_DIA = Number(process.env.LIMITE_POR_DIA ?? 600);                     // pedidos en total por día
+const POR_HORA = Number(process.env.LIMITE_POR_HORA ?? 120);                   // retos con IA por persona por hora
+const MATERIAL_POR_HORA = Number(process.env.LIMITE_MATERIAL_POR_HORA ?? 15);  // mundos desde material por persona por hora
+const TRANSCRIBIR_POR_HORA = Number(process.env.LIMITE_TRANSCRIBIR_POR_HORA ?? 15); // fotos o PDF escaneados por persona por hora
+const POR_DIA = Number(process.env.LIMITE_POR_DIA ?? 1000);                    // pedidos en total por día
 
 const pedidosIP = new Map();   // "ruta|ip" → momentos de sus pedidos en la última hora
 let diaActual = new Date().toDateString(), pedidosHoy = 0;
@@ -90,17 +93,23 @@ const RUTAS = {
 async function preguntarAClaude(contenido, maxTokens, comoTexto = false) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "x-api-key": LLAVE, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    headers: {
+      "x-api-key": LLAVE, "anthropic-version": "2023-06-01", "content-type": "application/json",
+      ...(CON_RESPALDO ? { "anthropic-beta": "server-side-fallback-2026-07-01" } : {}),
+    },
     body: JSON.stringify({
       model: MODELO,
       max_tokens: maxTokens,   // incluye lo que la IA piensa: si fuera muy poco, no le quedaría espacio para responder
       ...(ESFUERZO ? { output_config: { effort: ESFUERZO } } : {}),
+      ...(CON_RESPALDO ? { fallbacks: "default" } : {}),
       messages: [{ role: "user", content: contenido }],
     }),
     signal: AbortSignal.timeout(120_000),   // si la IA tarda más de 2 minutos, se corta y el juego sigue sin ella
   });
   if (!r.ok) throw new Error(`API ${r.status}: ${await r.text()}`);
   const datos = await r.json();
+  // Si la IA (y su respaldo) se negó, no se usa nada de lo que haya escrito.
+  if (datos.stop_reason === "refusal") throw new Error(`La IA no quiso responder (categoría: ${datos.stop_details?.category ?? "sin categoría"})`);
   const texto = datos.content?.filter(b => b.type === "text").map(b => b.text).join("") ?? "";
   // Si no llegó texto (se acabó el espacio pensando, o la IA se negó), se dice por qué en el registro.
   const motivo = `stop_reason: ${datos.stop_reason}, bloques: ${(datos.content ?? []).map(b => b.type).join(",") || "ninguno"}`;

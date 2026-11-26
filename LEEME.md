@@ -12,13 +12,13 @@ No abras `index.local.html` con doble clic: el navegador bloquea los módulos de
 ```
 ANTHROPIC_API_KEY=tu_llave node servidor.mjs
 ```
-Luego abre http://localhost:8000. La llave se queda en el servidor y nunca llega al navegador. Para cambiar de modelo, usa `RICK_MODELO=...` (por defecto `claude-haiku-5-5`, que es rápido).
+Luego abre http://localhost:8000. La llave se queda en el servidor y nunca llega al navegador. El modelo por defecto es **Claude Sonnet 5.5** (`claude-sonnet-5-5`), que piensa poco antes de responder (`RICK_ESFUERZO=low`). Si alguna vez se niega a responder, Anthropic reintenta en otro modelo automáticamente; si aun así no responde, el juego sigue con los retos locales. Para gastar unas 20 veces menos, usa `RICK_MODELO=claude-haiku-5-5`.
 
 **Protección de tus créditos:** el navegador solo le manda al servidor datos (materia, dificultad, edad, o el material del profe) y **el servidor arma las instrucciones** para la IA, así nadie puede usar tu llave para pedirle otra cosa. Además hay límites de pedidos, que se pueden cambiar con variables de entorno:
-- `LIMITE_POR_HORA` (40): retos con IA por persona por hora.
-- `LIMITE_MATERIAL_POR_HORA` (10): mundos desde material por persona por hora.
-- `LIMITE_TRANSCRIBIR_POR_HORA` (10): fotos o PDF escaneados leídos con IA por persona por hora.
-- `LIMITE_POR_DIA` (600): pedidos en total por día.
+- `LIMITE_POR_HORA` (120): retos con IA por persona por hora.
+- `LIMITE_MATERIAL_POR_HORA` (15): mundos desde material por persona por hora.
+- `LIMITE_TRANSCRIBIR_POR_HORA` (15): fotos o PDF escaneados leídos con IA por persona por hora.
+- `LIMITE_POR_DIA` (1000): pedidos en total por día.
 
 Cuando se llega al límite, el juego sigue con los retos locales.
 
@@ -34,7 +34,7 @@ El juego está listo para **Render** (render.com, plan gratis). Render toma el c
 4. Cuando termine, Render te da el link (algo como `https://portal-del-saber.onrender.com`). Ese es el link para compartir.
 
 **Antes de compartirlo:**
-- Crea una llave solo para este juego en console.anthropic.com y ponle un **límite de gasto mensual**. Es la protección más fuerte: los límites del juego (40 retos por persona por hora, 5 mundos y 5 fotos por persona por hora, 300 pedidos al día) se cambian en Render > Environment, pero alguien decidido podría saltarse el límite por persona.
+- Crea una llave solo para este juego en console.anthropic.com y ponle un **límite de gasto mensual**. Es la protección más fuerte: los límites del juego (120 retos por persona por hora, 15 mundos y 15 fotos por persona por hora, 1000 pedidos al día; con Sonnet 5.5 cada pedido de retos cuesta 1 o 2 centavos de dólar, un mundo unos 5 y una foto unos 4) se cambian en Render > Environment, pero alguien decidido podría saltarse el límite por persona.
 - Con el plan gratis, Render apaga el juego si nadie entra en 15 minutos: la primera visita después tarda cerca de un minuto en abrir.
 - Cada persona guarda su progreso y sus mundos en su propio navegador. Para pasar un mundo a otra persona: **Exportar mundo** e **Importar mundo**.
 - La contraseña de administrador de la demo (`rick123`) se ve en la pantalla: cualquiera que abra el link puede crear mundos en su navegador (con los límites de arriba).
