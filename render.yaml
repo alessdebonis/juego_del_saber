@@ -14,6 +14,8 @@ services:
         sync: false        # la pegas tú en Render; nunca en el código
       - key: RICK_MODELO
         value: claude-haiku-5-5
+      - key: RICK_ESFUERZO
+        value: low         # cuánto piensa la IA antes de responder (low basta para retos y preguntas)
       # Límites para cuidar tus créditos (súbelos o bájalos cuando quieras desde Render > Environment)
       - key: LIMITE_POR_HORA
         value: "40"        # retos con IA por persona por hora

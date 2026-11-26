@@ -16,6 +16,10 @@ import { ARCHIVOS_TRANSCRIBIR, instrucciones, instruccionesMaterial, instruccion
 const PUERTO = Number(process.env.PORT ?? 8000);
 const LLAVE = process.env.ANTHROPIC_API_KEY;
 const MODELO = process.env.RICK_MODELO ?? "claude-haiku-5-5";
+// Claude Haiku 5.5 siempre piensa antes de responder. Para estas tareas (retos cortos, preguntas, transcribir)
+// basta pensar poco: así responde más rápido, gasta menos y le queda espacio para la respuesta.
+// Para un modelo sin "effort" (por ejemplo Haiku 4.5), pon RICK_ESFUERZO vacío en el entorno.
+const ESFUERZO = process.env.RICK_ESFUERZO ?? "low";
 const RAIZ = new URL(".", import.meta.url).pathname;
 const TIPOS = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".md": "text/markdown; charset=utf-8",
@@ -53,7 +57,7 @@ const textoCorto = lista => (Array.isArray(lista) ? lista : []).slice(0, 12).map
 // "texto": la IA responde texto (una transcripción) en vez de una lista de retos.
 const RUTAS = {
   "/api/rick": {
-    cuerpo: 20000, porHora: POR_HORA, tokens: 1500,
+    cuerpo: 20000, porHora: POR_HORA, tokens: 8000,
     armar(d) {
       if (!Object.hasOwn(MATERIAS_IA, d.materia)) return null;
       return instrucciones(d.materia, entero(d.dificultad, 1, 5, 1), entero(d.edad, 4, 12, 7),
@@ -61,7 +65,7 @@ const RUTAS = {
     },
   },
   "/api/rick/material": {
-    cuerpo: 80000, porHora: MATERIAL_POR_HORA, tokens: 6000,
+    cuerpo: 80000, porHora: MATERIAL_POR_HORA, tokens: 16000,
     armar(d) {
       const material = typeof d.material === "string" ? d.material.trim() : "";
       if (material.length < MATERIAL_MIN || material.length > MATERIAL_MAX) return null;
@@ -70,7 +74,7 @@ const RUTAS = {
   },
   // Foto o PDF escaneado del profe → texto. Solo se aceptan esos tipos de archivo, en base64.
   "/api/rick/transcribir": {
-    cuerpo: 15_000_000, porHora: TRANSCRIBIR_POR_HORA, tokens: 8000, texto: true,
+    cuerpo: 15_000_000, porHora: TRANSCRIBIR_POR_HORA, tokens: 16000, texto: true,
     armar(d) {
       const bloque = ARCHIVOS_TRANSCRIBIR[d.mediaType];
       if (!bloque || typeof d.datos !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(d.datos)) return null;
@@ -87,14 +91,23 @@ async function preguntarAClaude(contenido, maxTokens, comoTexto = false) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": LLAVE, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: MODELO, max_tokens: maxTokens, messages: [{ role: "user", content: contenido }] }),
-    signal: AbortSignal.timeout(90_000),   // si la IA tarda más de 90 s, se corta y el juego sigue sin ella
+    body: JSON.stringify({
+      model: MODELO,
+      max_tokens: maxTokens,   // incluye lo que la IA piensa: si fuera muy poco, no le quedaría espacio para responder
+      ...(ESFUERZO ? { output_config: { effort: ESFUERZO } } : {}),
+      messages: [{ role: "user", content: contenido }],
+    }),
+    signal: AbortSignal.timeout(120_000),   // si la IA tarda más de 2 minutos, se corta y el juego sigue sin ella
   });
   if (!r.ok) throw new Error(`API ${r.status}: ${await r.text()}`);
   const datos = await r.json();
   const texto = datos.content?.filter(b => b.type === "text").map(b => b.text).join("") ?? "";
+  // Si no llegó texto (se acabó el espacio pensando, o la IA se negó), se dice por qué en el registro.
+  const motivo = `stop_reason: ${datos.stop_reason}, bloques: ${(datos.content ?? []).map(b => b.type).join(",") || "ninguno"}`;
+  if (!texto.trim()) throw new Error(`La IA no devolvió texto (${motivo})`);
   if (comoTexto) return { texto };
   const inicio = texto.indexOf("["), fin = texto.lastIndexOf("]");
+  if (inicio < 0 || fin < inicio) throw new Error(`La IA no devolvió una lista (${motivo})`);
   return JSON.parse(texto.slice(inicio, fin + 1));
 }
 
